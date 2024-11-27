@@ -1,18 +1,18 @@
 from dotenv import load_dotenv
 import os
+from flask import Flask
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
-
 import requests  # For weather API
 
 # Load .env file
 load_dotenv()
 
-# Replace with your weather API key
-# https://home.openweathermap.org/api_keys
 # Fetch environment variables
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
+
+app = Flask(__name__)
 
 # Start command
 def start(update: Update, context: CallbackContext):
@@ -37,17 +37,29 @@ def weather(update: Update, context: CallbackContext):
     else:
         update.message.reply_text("City not found!")
 
-# Main function
-def main():
-    updater = Updater(TELEGRAM_BOT_TOKEN)
-    dp = updater.dispatcher
+# Initialize the updater
+updater = Updater(TELEGRAM_BOT_TOKEN, use_context=True)
+dp = updater.dispatcher
+dp.add_handler(CommandHandler("start", start))
+dp.add_handler(CommandHandler("subscribe", subscribe))
+dp.add_handler(CommandHandler("weather", weather))
 
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("subscribe", subscribe))
-    dp.add_handler(CommandHandler("weather", weather))
-
+# Main function to run the bot
+def run_bot():
+    print("Starting bot...")
     updater.start_polling()
     updater.idle()
 
+# Dummy route for Flask
+@app.route("/")
+def home():
+    return "Bot is running!"
+
 if __name__ == "__main__":
-    main()
+    # Start the bot in the same process
+    print("Starting Telegram bot...")
+    run_bot()
+
+    # Start Flask app after the bot starts
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
